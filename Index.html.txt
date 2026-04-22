@@ -1,0 +1,230 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Zeit Simulator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+
+body{
+font-family:Arial;
+background:#111;
+color:white;
+text-align:center;
+padding:30px;
+}
+
+.container{
+max-width:420px;
+margin:auto;
+background:#1e1e1e;
+padding:25px;
+border-radius:12px;
+}
+
+.clock{
+font-size:60px;
+margin:20px;
+}
+
+canvas{
+background:#222;
+border-radius:50%;
+margin-top:20px;
+}
+
+button{
+padding:10px 18px;
+margin:8px;
+border:none;
+border-radius:6px;
+font-size:16px;
+cursor:pointer;
+}
+
+.start{background:#4CAF50;color:white;}
+.reset{background:#f44336;color:white;}
+
+select,input{
+padding:6px;
+margin:5px;
+}
+
+.progressCircle{
+width:160px;
+height:160px;
+border-radius:50%;
+border:10px solid #333;
+margin:20px auto;
+position:relative;
+}
+
+.progressFill{
+position:absolute;
+top:0;
+left:0;
+width:100%;
+height:100%;
+border-radius:50%;
+clip-path:circle(50%);
+}
+
+</style>
+
+</head>
+<body>
+
+<h2>Zeit Simulation</h2>
+
+<div class="container">
+
+Startzeit<br>
+<input type="time" id="startTime" value="08:00"><br>
+
+Endzeit<br>
+<input type="time" id="endTime" value="16:00"><br>
+
+Simulationsdauer (Minuten)<br>
+<input type="number" id="duration" value="30"><br>
+
+Uhr Typ<br>
+<select id="clockType">
+<option value="digital">Digital</option>
+<option value="analog">Analog</option>
+<option value="circle">Fortschritt</option>
+</select>
+
+<div id="digitalClock" class="clock">08:00</div>
+
+<canvas id="analogClock" width="200" height="200" style="display:none"></canvas>
+
+<div id="circleClock" class="progressCircle" style="display:none">
+<div id="circleFill" class="progressFill"></div>
+</div>
+
+<button class="start" onclick="startSimulation()">Start</button>
+<button class="reset" onclick="resetSimulation()">Reset</button>
+
+</div>
+
+<script>
+
+let startReal;
+let timer;
+
+function updateClockType(){
+
+let type=document.getElementById("clockType").value;
+
+digitalClock.style.display="none";
+analogClock.style.display="none";
+circleClock.style.display="none";
+
+if(type==="digital") digitalClock.style.display="block";
+if(type==="analog") analogClock.style.display="block";
+if(type==="circle") circleClock.style.display="block";
+
+}
+
+document.getElementById("clockType").addEventListener("change",updateClockType);
+
+function startSimulation(){
+
+let startInput=startTime.value;
+let endInput=endTime.value;
+let duration=parseFloat(duration.value);
+
+let s=startInput.split(":");
+let e=endInput.split(":");
+
+let startMinutes=s[0]*60 + parseInt(s[1]);
+let endMinutes=e[0]*60 + parseInt(e[1]);
+
+let simLength=endMinutes-startMinutes;
+let factor=simLength/duration;
+
+startReal=Date.now();
+
+timer=setInterval(()=>{
+
+let elapsed=(Date.now()-startReal)/60000;
+let simMinutes=startMinutes + elapsed*factor;
+
+let progress=elapsed/duration;
+
+if(simMinutes>=endMinutes){
+simMinutes=endMinutes;
+progress=1;
+clearInterval(timer);
+}
+
+let h=Math.floor(simMinutes/60);
+let m=Math.floor(simMinutes%60);
+
+let timeStr=
+String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
+
+digitalClock.innerText=timeStr;
+
+drawAnalog(h,m);
+drawCircle(progress);
+
+},1000);
+
+}
+
+function resetSimulation(){
+clearInterval(timer);
+digitalClock.innerText=startTime.value;
+drawCircle(0);
+}
+
+function drawAnalog(h,m){
+
+let canvas=document.getElementById("analogClock");
+let ctx=canvas.getContext("2d");
+
+ctx.clearRect(0,0,200,200);
+
+ctx.beginPath();
+ctx.arc(100,100,90,0,Math.PI*2);
+ctx.strokeStyle="white";
+ctx.stroke();
+
+let hourAngle=(h%12 + m/60)*30*Math.PI/180;
+let minuteAngle=m*6*Math.PI/180;
+
+ctx.beginPath();
+ctx.moveTo(100,100);
+ctx.lineTo(
+100+50*Math.sin(hourAngle),
+100-50*Math.cos(hourAngle)
+);
+ctx.stroke();
+
+ctx.beginPath();
+ctx.moveTo(100,100);
+ctx.lineTo(
+100+70*Math.sin(minuteAngle),
+100-70*Math.cos(minuteAngle)
+);
+ctx.stroke();
+
+}
+
+function drawCircle(p){
+
+let deg=p*360;
+circleFill.style.background=
+`conic-gradient(#4CAF50 ${deg}deg,#333 ${deg}deg)`;
+
+}
+
+updateClockType();
+
+</script>
+
+</body>
+</html>
